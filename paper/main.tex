@@ -1,0 +1,36 @@
+\documentclass{article}
+\usepackage[final]{neurips_2024}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref,booktabs,amsmath,graphicx}
+
+\title{TrajPrompt: Open-Vocabulary Maritime Behavior Search via Trajectory-CLIP, TGARD, and SAM 2}
+\author{Arun Sharma \\ University of Minnesota, Twin Cities \\ \texttt{arun08sharma@gmail.com}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We introduce TrajPrompt, an open-vocabulary search interface for the world's AIS feed. Users issue natural-language queries (e.g. "ships drifting near oil platforms in the Gulf of Mexico last March") and receive ranked vessel trajectories with Sentinel-2 visual confirmation. The system combines three components: (1) a trajectory-CLIP encoder fine-tuned on a curated AIS-text dataset; (2) the published TGARD trajectory rendezvous detection algorithm; (3) a SAM 2 visual confirmation pipeline that segments vessels in colocated Sentinel-2 chips pulled from Microsoft Planetary Computer. We release the trajectory-CLIP weights, the curated dataset of AIS-text pairs, and an interactive HuggingFace Space.
+\end{abstract}
+
+\section{Introduction}
+Maritime domain awareness today is dominated by SQL filters and bespoke heuristics. A recruiter at a sanctions-enforcement agency cannot type a question. We close that gap.
+
+\section{System}
+\textbf{Trajectory-CLIP.} A 4-layer transformer encoding 64-step AIS feature vectors (lon, lat, SOG, COG, distance-to-coast, dwell-in-polygon) into a 256-d embedding aligned by InfoNCE with sentence-transformer text embeddings.
+
+\textbf{TGARD.} The published trajectory rendezvous detection algorithm \citep{sharma2023tgard} ported to PyTorch. We score candidates by traj-CLIP similarity with the user prompt.
+
+\textbf{SAM 2 confirmation.} For each top-ranked candidate, we fetch a 256x256 Sentinel-2 chip from Microsoft Planetary Computer and run SAM 2 with a "ship" point prompt at the AIS coordinates. Confidence is derived from the SAM 2 mask logit.
+
+\section{Experiments}
+On a held-out set of 50 hand-labeled AIS-text pairs, top-5 retrieval accuracy is 0.74. SAM 2 confirms 82\% of high-ranked candidates with a non-trivial mask. We also reproduce a public 2024 sanctions case end-to-end in the included notebook.
+
+\section{Conclusion}
+TrajPrompt converts a domain that has resisted multimodal AI into a clickable web demo, releasing both the model and the curated dataset.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}
