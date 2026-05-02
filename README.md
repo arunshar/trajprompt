@@ -27,6 +27,21 @@ bash scripts/download_ais_dma.sh
 python -m trajprompt.training.train +experiment=trajclip_ais
 ```
 
+## Smoke tests
+
+```bash
+uv venv --python 3.11 .venv && source .venv/bin/activate
+uv pip install -e ".[dev,space]"
+pytest                                    # 6 + 12 = 18 tests
+python /tmp/launch_smoke.py "$(pwd)" space/mapbox_app.py
+```
+
+Verified status (CPU smoke):
+- 6/6 TGARD + traj-CLIP tests (haversine distance, rendezvous detection on synthetic dwell, contrastive loss alignment).
+- 12/12 Space smoke tests (TGARD pipeline, traj-CLIP L2-norm, SAM 2 chip stub shape, UI build, callback shape, requirements parseable, HF README frontmatter).
+- Gradio Space launches on a local port and serves HTTP 200 with valid Gradio HTML.
+- `space/requirements.txt` resolves cleanly.
+
 ## Try the live demo
 
 [HF Space](https://huggingface.co/spaces/arun08sharma/trajprompt) — Mapbox dark theme, free-text prompt, output is annotated trajectory traces + Sentinel-2 chips with SAM 2 masks.
