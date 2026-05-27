@@ -1,7 +1,2 @@
 gradio>=4.40
 torch>=2.3
-folium>=0.17
-branca>=0.7
-pandas>=2.2
-huggingface_hub>=0.24
-trajprompt @ git+https://github.com/arunshar/trajprompt@main
