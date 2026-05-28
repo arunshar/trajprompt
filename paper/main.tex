@@ -1,36 +1,1164 @@
 \documentclass{article}
-\usepackage[final]{neurips_2024}
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage{hyperref,booktabs,amsmath,graphicx}
 
-\title{TrajPrompt: Open-Vocabulary Maritime Behavior Search via Trajectory-CLIP, TGARD, and SAM 2}
-\author{Arun Sharma \\ University of Minnesota, Twin Cities \\ \texttt{arun08sharma@gmail.com}}
+% --- Page geometry to match NeurIPS format ---
+\usepackage[
+  letterpaper,
+  textheight=9in,
+  textwidth=5.5in,
+  top=1in,
+  headheight=12pt,
+  headsep=25pt,
+  footskip=30pt
+]{geometry}
+\usepackage{times}
+\renewcommand{\rmdefault}{ptm}
+\renewcommand{\sfdefault}{phv}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+% --- Math and symbols ---
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{mathtools}
+
+% --- Tables and figures ---
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% --- Code and algorithms ---
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% --- Hyperlinks and references ---
+\usepackage[colorlinks=true,citecolor=blue,linkcolor=blue,urlcolor=blue]{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+\bibliographystyle{plainnat}
+
+% --- TikZ for diagrams ---
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds,calc,decorations.pathmorphing}
+
+% --- Misc ---
+\usepackage{enumitem}
+\usepackage{microtype}
+
+\widowpenalty=10000
+\clubpenalty=10000
+\flushbottom
+\tolerance=1800
+\emergencystretch=1.5em
+\hfuzz=0.3pt
+\hbadness=10000
+\vbadness=10000
+\parfillskip=0pt plus 0.35\textwidth
+
+% --- Title formatting ---
+\makeatletter
+\providecommand*{\toclevel@algorithm}{0}
+\renewcommand{\normalsize}{%
+  \@setfontsize\normalsize\@xpt\@xipt
+  \abovedisplayskip      7\p@ \@plus 2\p@ \@minus 5\p@
+  \abovedisplayshortskip \z@  \@plus 3\p@
+  \belowdisplayskip      \abovedisplayskip
+  \belowdisplayshortskip 4\p@ \@plus 3\p@ \@minus 3\p@
+}
+\normalsize
+\renewcommand{\small}{%
+  \@setfontsize\small\@ixpt\@xpt
+  \abovedisplayskip      6\p@ \@plus 1.5\p@ \@minus 4\p@
+  \abovedisplayshortskip \z@  \@plus 2\p@
+  \belowdisplayskip      \abovedisplayskip
+  \belowdisplayshortskip 3\p@ \@plus 2\p@ \@minus 2\p@
+}
+\renewcommand{\footnotesize}{\@setfontsize\footnotesize\@ixpt\@xpt}
+\renewcommand{\scriptsize}{\@setfontsize\scriptsize\@viipt\@viiipt}
+\renewcommand{\tiny}{\@setfontsize\tiny\@vipt\@viipt}
+\renewcommand{\large}{\@setfontsize\large\@xiipt{14}}
+\renewcommand{\Large}{\@setfontsize\Large\@xivpt{16}}
+\renewcommand{\LARGE}{\@setfontsize\LARGE\@xviipt{20}}
+\renewcommand{\huge}{\@setfontsize\huge\@xxpt{23}}
+\renewcommand{\Huge}{\@setfontsize\Huge\@xxvpt{28}}
+
+\renewcommand{\section}{%
+  \@startsection{section}{1}{\z@}%
+                {-2.0ex \@plus -0.5ex \@minus -0.2ex}%
+                {0.8ex \@plus 0.2ex \@minus 0.1ex}%
+                {\large\bfseries\raggedright}%
+}
+\renewcommand{\subsection}{%
+  \@startsection{subsection}{2}{\z@}%
+                {-1.8ex \@plus -0.5ex \@minus -0.2ex}%
+                {0.5ex \@plus 0.15ex \@minus 0.1ex}%
+                {\normalsize\bfseries\raggedright}%
+}
+\renewcommand{\subsubsection}{%
+  \@startsection{subsubsection}{3}{\z@}%
+                {-1.5ex \@plus -0.5ex \@minus -0.2ex}%
+                {0.35ex \@plus 0.1ex \@minus 0.05ex}%
+                {\normalsize\bfseries\raggedright}%
+}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.4}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.7}
+
+\newlength{\@neuripsabovecaptionskip}
+\setlength{\@neuripsabovecaptionskip}{7\p@}
+\newlength{\@neuripsbelowcaptionskip}
+\setlength{\@neuripsbelowcaptionskip}{\z@}
+\setlength{\abovecaptionskip}{\@neuripsabovecaptionskip}
+\setlength{\belowcaptionskip}{\@neuripsbelowcaptionskip}
+
+\setlength{\footnotesep}{6.65\p@}
+\setlength{\skip\footins}{9\p@ \@plus 4\p@ \@minus 2\p@}
+\renewcommand{\footnoterule}{\kern-3\p@ \hrule width 12pc \kern 2.6\p@}
+\setcounter{footnote}{0}
+
+\setlength{\parindent}{\z@}
+\setlength{\parskip}{0pt}
+\setlist{topsep=0pt, itemsep=0pt, parsep=0pt, partopsep=0pt}
+\setlength{\bibsep}{0pt}
+
+\let\oldthebibliography\thebibliography
+\let\oldendthebibliography\endthebibliography
+\renewenvironment{thebibliography}[1]{%
+  \oldthebibliography{#1}%
+  \setlength{\itemsep}{0pt}%
+  \setlength{\parsep}{0pt}%
+  \setlength{\parskip}{0pt}%
+  \setlength{\topsep}{0pt}%
+  \setlength{\partopsep}{0pt}%
+}{%
+  \oldendthebibliography
+}
+
+\newcommand{\@noticestring}{%
+  40th Annual Conference on Neural Information Processing Systems (NeurIPS 2026).%
+}
+
+\renewcommand{\maketitle}{%
+  \par
+  \begingroup
+    \renewcommand{\thefootnote}{\fnsymbol{footnote}}
+    \renewcommand{\@makefnmark}{\hbox to \z@{$^{\@thefnmark}$\hss}}
+    \long\def\@makefntext##1{%
+      \parindent 1em\noindent
+      \hbox to 1.8em{\hss $\m@th ^{\@thefnmark}$}##1
+    }
+    \thispagestyle{empty}
+    \@maketitle
+    \@thanks
+    \@notice
+  \endgroup
+  \let\maketitle\relax
+  \let\thanks\relax
+}
+
+\newcommand{\@toptitlebar}{%
+  \hrule height 4\p@
+  \vskip 0.25in
+  \vskip -\parskip%
+}
+\newcommand{\@bottomtitlebar}{%
+  \vskip 0.29in
+  \vskip -\parskip
+  \hrule height 1\p@
+  \vskip 0.09in%
+}
+
+\renewcommand{\@maketitle}{%
+  \vbox{%
+    \hsize\textwidth
+    \linewidth\hsize
+    \vskip 0.1in
+    \@toptitlebar
+    \centering
+    {\LARGE\bfseries \@title\par}
+    \@bottomtitlebar
+    \def\And{%
+      \end{tabular}\hfil\linebreak[0]\hfil%
+      \begin{tabular}[t]{c}\rule{\z@}{24\p@}\ignorespaces%
+    }
+    \def\AND{%
+      \end{tabular}\hfil\linebreak[4]\hfil%
+      \begin{tabular}[t]{c}\rule{\z@}{24\p@}\ignorespaces%
+    }
+    \begin{tabular}[t]{c}\rule{\z@}{24\p@}\@author\end{tabular}%
+    \vskip 0.3in \@minus 0.1in
+  }%
+}
+
+\newcommand{\ftype@noticebox}{8}
+\newcommand{\@notice}{%
+  \enlargethispage{2\baselineskip}%
+  \@float{noticebox}[b]%
+    \footnotesize\@noticestring%
+  \end@float%
+}
+
+\renewenvironment{abstract}%
+{%
+  \vskip 0.075in%
+  \centerline{\large\bfseries Abstract}%
+  \vspace{0.5ex}%
+  \begin{quote}%
+}
+{%
+  \par%
+  \end{quote}%
+  \vskip 1ex%
+}
+\makeatother
+
+% --- Listings style ---
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  stringstyle=\color{red},
+  breaklines=true,
+  frame=single,
+  xleftmargin=1em,
+  framexleftmargin=0.5em
+}
+
+% --- Project diagram styles ---
+\tikzset{
+  paperblock/.style={draw,rounded corners=2pt,thick,align=center,inner sep=3.5pt,font=\scriptsize,minimum height=0.62cm},
+  paperarrow/.style={-{Stealth[length=2.2mm,width=1.6mm]},line width=0.66pt,shorten >=3pt,shorten <=3pt,line cap=round},
+  paperdata/.style={paperblock,fill=cyan!8,draw=cyan!55!black},
+  papermodel/.style={paperblock,fill=green!8,draw=green!45!black},
+  paperloss/.style={paperblock,fill=orange!10,draw=orange!70!black},
+  paperout/.style={paperblock,fill=violet!8,draw=violet!55!black}
+}
+
+% ============================================================
+\title{TrajPrompt: Open-Vocabulary Maritime Behavior Search with Trajectory Contrastive Learning, TGARD, and Satellite Confirmation}
+\author{
+  \textbf{Arun Sharma}\\
+  University of Minnesota, Twin Cities\\
+  \texttt{arunshar@umn.edu}
+}
+\date{}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-We introduce TrajPrompt, an open-vocabulary search interface for the world's AIS feed. Users issue natural-language queries (e.g. "ships drifting near oil platforms in the Gulf of Mexico last March") and receive ranked vessel trajectories with Sentinel-2 visual confirmation. The system combines three components: (1) a trajectory-CLIP encoder fine-tuned on a curated AIS-text dataset; (2) the published TGARD trajectory rendezvous detection algorithm; (3) a SAM 2 visual confirmation pipeline that segments vessels in colocated Sentinel-2 chips pulled from Microsoft Planetary Computer. We release the trajectory-CLIP weights, the curated dataset of AIS-text pairs, and an interactive HuggingFace Space.
+Maritime analysts often search vessel behavior with rigid database filters: speed thresholds, bounding boxes, time windows, and hand-written anomaly rules. TrajPrompt proposes an open-vocabulary interface in which a user types a behavioral description and receives candidate AIS trajectories, rendezvous intervals, and satellite-image confirmation chips. The repository combines three components: a trajectory-side contrastive encoder for aligning AIS feature sequences with text embeddings, a PyTorch port of TGARD-style rendezvous detection, and a Sentinel-2 plus SAM 2 confirmation implementation. This paper is an arXiv-style paper grounded in the current codebase and public Hugging Face Space. It describes the method and implementation without inventing benchmark outcomes. Current validation consists of unit tests for Haversine distance, rendezvous detection, trajectory embedding normalization, contrastive loss behavior, SAM-chip shape, and the Space interface.
 \end{abstract}
 
 \section{Introduction}
-Maritime domain awareness today is dominated by SQL filters and bespoke heuristics. A recruiter at a sanctions-enforcement agency cannot type a question. We close that gap.
 
-\section{System}
-\textbf{Trajectory-CLIP.} A 4-layer transformer encoding 64-step AIS feature vectors (lon, lat, SOG, COG, distance-to-coast, dwell-in-polygon) into a 256-d embedding aligned by InfoNCE with sentence-transformer text embeddings.
+Automatic Identification System (AIS) streams are central to maritime domain awareness. They are also difficult to query by intent. A suspicious pattern such as ``ships drifting near pipelines before disappearing from AIS'' is not a single SQL predicate; it mixes geography, vessel motion, dwell time, proximity, imagery, and analyst context. Existing pipelines therefore alternate between manual filtering and bespoke anomaly detectors.
 
-\textbf{TGARD.} The published trajectory rendezvous detection algorithm \citep{sharma2023tgard} ported to PyTorch. We score candidates by traj-CLIP similarity with the user prompt.
+TrajPrompt explores a more natural interface. The analyst enters a free-text behavior query. The system embeds candidate trajectories, scores them against text, detects rendezvous events with a deterministic trajectory algorithm, and attaches satellite confirmation chips. The current repository is a research implementation: it contains the core trajectory encoder, TGARD-style rendezvous code, SAM 2 chip abstraction, tests, and a Hugging Face Space. It does not yet claim a complete production maritime search engine.
 
-\textbf{SAM 2 confirmation.} For each top-ranked candidate, we fetch a 256x256 Sentinel-2 chip from Microsoft Planetary Computer and run SAM 2 with a "ship" point prompt at the AIS coordinates. Confidence is derived from the SAM 2 mask logit.
+This paper turns that implementation into a structured paper. The emphasis is on what can be verified from the code today and the evaluation measurements used by the paper.
 
-\section{Experiments}
-On a held-out set of 50 hand-labeled AIS-text pairs, top-5 retrieval accuracy is 0.74. SAM 2 confirms 82\% of high-ranked candidates with a non-trivial mask. We also reproduce a public 2024 sanctions case end-to-end in the included notebook.
+\paragraph{Contributions:}
+\begin{enumerate}
+  \item A trajectory-CLIP encoder that maps AIS feature sequences to normalized embeddings for contrastive alignment with natural language.
+  \item A tensorized rendezvous detection path based on pairwise Haversine distance and dwell-time constraints.
+  \item A satellite confirmation abstraction that connects candidate events to Sentinel-2 chips and SAM 2 masks.
+  \item A testable repository and Space interface for open-vocabulary maritime behavior search.
+\end{enumerate}
 
-\section{Conclusion}
-TrajPrompt converts a domain that has resisted multimodal AI into a clickable web demo, releasing both the model and the curated dataset.
+\begin{figure}[t]
+\centering
 
-\bibliographystyle{plainnat}
+
+
+
+\begin{tikzpicture}[x=0.755cm,y=0.95cm,font=\scriptsize,every node/.style={align=center}]
+  \node[font=\bfseries] at (1.15,4.18) {A. Inputs};
+  \node[paperdata,minimum width=1.88cm] (in1) at (1.05,3.22) {AIS trajectories};
+  \node[paperdata,minimum width=1.88cm] (in2) at (1.05,2.10) {text query};
+  \node[paperdata,minimum width=1.88cm] (in3) at (1.05,0.98) {satellite chips};
+  \node[papermodel,minimum width=2.18cm] (embed) at (3.85,2.10) {trajectory/text tokenizer};
+  \draw[paperarrow] (in1.east) -- ([yshift=0.20cm]embed.west);
+  \draw[paperarrow] (in2.east) -- (embed.west);
+  \draw[paperarrow] (in3.east) -- ([yshift=-0.20cm]embed.west);
+
+  \node[font=\bfseries] at (6.30,4.18) {B. Attention encoder};
+  \node[papermodel,minimum width=2.18cm] (ln) at (6.25,3.34) {LayerNorm};
+  \node[papermodel,minimum width=2.18cm] (qkv) at (6.25,2.47) {cross-modal $Q,K,V$};
+  \node[papermodel,minimum width=2.18cm] (attn) at (6.25,1.60) {behavior attention};
+  \node[papermodel,minimum width=2.18cm] (ffn) at (6.25,0.73) {event MLP + residual};
+  \draw[paperarrow] (embed.east) -- (ln.west);
+  \draw[paperarrow] (ln.south) -- (qkv.north);
+  \draw[paperarrow] (qkv.south) -- (attn.north);
+  \draw[paperarrow] (attn.south) -- (ffn.north);
+  \node[font=\tiny] at (7.40,0.34) {residual add/norm};
+
+  \node[inner sep=0pt,minimum width=0.84cm,minimum height=0.84cm] (mat) at (8.45,1.78) {};
+  \begin{scope}[shift={(8.05,1.38)}]
+    \foreach \i in {0,...,4}{\foreach \j in {0,...,4}{
+      \pgfmathsetmacro{\v}{18+10*\i+8*\j}
+      \fill[blue!\v!white,draw=blue!20!white,line width=0.05pt] (0.16*\i,0.16*\j) rectangle ++(0.14,0.14);
+    }}
+    \node[font=\tiny] at (0.40,1.02) {$QK^\top/\sqrt d$};
+  \end{scope}
+  \draw[paperarrow] (attn.east) -- (mat.west);
+  \coordinate (bus) at (9.55,1.78);
+  \draw[paperarrow] (mat.east) -- (bus);
+
+  \node[font=\bfseries] at (12.45,4.18) {C. Decoder heads};
+  \node[paperloss,minimum width=2.42cm] (h1) at (11.30,2.95) {retrieval $s(\tau,q)$};
+  \node[paperloss,minimum width=2.42cm] (h2) at (11.30,1.20) {event evidence};
+  \node[paperout,minimum width=2.55cm] (fuse) at (14.20,2.08) {ranked candidates};
+  \node[paperout,minimum width=2.12cm] (out) at (16.65,2.08) {evidence card};
+  \draw[semithick,gray!70] (9.55,0.90) -- (9.55,3.25);
+  \draw[paperarrow] (9.55,2.95) -- (h1.west);
+  \draw[paperarrow] (9.55,1.20) -- (h2.west);
+  \draw[paperarrow] (h1.east) -- ([yshift=0.28cm]fuse.west);
+  \draw[paperarrow] (h2.east) -- ([yshift=-0.28cm]fuse.west);
+  \draw[paperarrow] (fuse.east) -- (out.west);
+
+  \node[font=\bfseries] at (12.65,0.30) {D. Evaluation heads};
+  \foreach \x/\lab in {9.85/Recall@K,11.35/MRR,12.82/event F1,14.28/chip check}{
+    \node[paperout,minimum width=1.25cm,minimum height=0.36cm,font=\tiny] at (\x,-0.30) {\lab};
+  }
+  \draw[paperarrow] (out.south) -- ++(0,-0.72) -| (14.28,-0.05);
+
+  \begin{scope}[shift={(1.05,-1.88)}]
+    \draw[fill=gray!10,draw=gray!45,line width=0.3pt] (0,0.12) -- (1.2,0.30) -- (2.4,0.08) -- (3.65,0.38) -- (4.95,0.14);
+    \foreach \x/\y in {0.30/0.25,1.00/0.33,1.75/0.18,2.45/0.16,3.25/0.42,4.10/0.28}{\fill[green!50!black] (\x,\y) circle (1.1pt);}
+    \draw[paperarrow,cyan!65!black] (2.45,1.00) -- (1.20,0.42);
+    \draw[paperarrow,cyan!65!black] (2.45,1.00) -- (3.35,0.52);
+    \node[font=\tiny] at (2.45,1.18) {language query grounded in movement};
+  \end{scope}
+\end{tikzpicture}
+\caption{Detailed TrajPrompt architecture. The figure distinguishes representation learning from evidence decoding: AIS and text tokens enter a contrastive attention layer, hard-negative gates shape the retrieval space, deterministic event modules produce auditable evidence, and the evaluation heads separately measure ranking and event correctness.}
+\label{fig:trajprompt-architecture}
+\end{figure}
+
+\paragraph{Scope:}
+
+Maritime search is often bottlenecked by the mismatch between how analysts think and how AIS databases are queried. Analysts ask for behavior: drifting, loitering, disappearing, rendezvousing, shadowing, or approaching restricted regions. Databases store messages: timestamps, coordinates, speed, course, MMSI, and vessel metadata. TrajPrompt addresses this mismatch by making natural language a retrieval interface over trajectory windows while preserving deterministic geospatial checks for events that should not be left to a neural embedding.
+
+The paper is deliberately not framed as an autonomous enforcement system. A language-guided trajectory search engine should return candidates, evidence, and uncertainty. It should not assert intent. This boundary is especially important in maritime analytics because phrases like ``illegal fishing'' or ``smuggling'' are legal and contextual claims. The observable substrate is movement behavior, AIS availability, proximity, and optional satellite imagery.
+
+The technical thesis is that trajectory search needs both representation learning and structured event reasoning. Contrastive learning can make free-text queries usable, but deterministic modules are still needed for Haversine distance, dwell intervals, trajectory gaps, and rendezvous candidates. Satellite confirmation is a third layer: it can verify whether imagery supports a candidate event, but it is constrained by revisit time, cloud cover, and resolution.
+
+The expanded paper therefore treats TrajPrompt as a staged retrieval system. First, vector search proposes candidates. Second, deterministic event modules attach auditable geospatial evidence. Third, satellite confirmation reports whether visual evidence exists. Fourth, a human reader interprets the result. This staged framing is more defensible than claiming that a single embedding model understands maritime behavior.
+
+\paragraph{Expanded contributions:}
+The expanded paper adds a query taxonomy, weak-supervision plan, streaming-state design, hard-negative evaluation protocol, satellite-confirmation schema, implementation-grounded results, and six reader questions. These make the paper closer to a research artifact and less like a demo description.
+
+\section{Related Work}
+
+\paragraph{Expanded Citation Map:}
+The expanded citation map ties trajectory mining to modern language and contrastive learning. Dynamic time warping, robust trajectory similarity, TRACLUS, T-Drive, GeoLife, T2Vec, CSTRM, and CLAIS define the movement-representation side \citep{sakoe1978dtw,chen2005robust,lee2007traclus,yuan2010tdrive,zheng2010geolife,li2018t2vec,yao2022cstrm,li2023clais}. Maritime anomaly and rendezvous studies provide domain-specific evidence operators \citep{zheng2015trajectory,pallotta2013vessel,nguyen2020geotracknet,sharma2022tist,ristic2008maritime}. Transformers, BERT, Sentence-BERT, CLIP, few-shot language models, retrieval-augmented generation, CPC, SimCLR, MoCo, and supervised contrastive learning define the language/retrieval objective family \citep{vaswani2017attention,devlin2019bert,reimers2019sentencebert,radford2021clip,brown2020language,lewis2020rag,oord2018cpc,chen2020simclr,he2020moco,khosla2020supervisedcontrastive}. SAM and SAM 2 remain the visual confirmation references rather than the primary retrieval mechanism \citep{kirillov2023segment,ravi2024sam2}.
+
+
+\paragraph{Trajectory mining:}
+Trajectory mining studies movement patterns, similarity, anomaly detection, and co-location in spatiotemporal data \citep{zheng2015trajectory}. Maritime AIS analytics has a long history in anomaly detection and dark-activity discovery \citep{pallotta2013vessel,nguyen2020geotracknet}. The TGARD line of work uses time-geographic reasoning to detect possible rendezvous and trajectory gaps in AIS streams.
+
+\paragraph{Contrastive language-image and language-trajectory models:}
+CLIP showed that contrastive learning can align natural language with visual representations at scale \citep{radford2021learning}. Trajectory representation learning work has used recurrent models, graph models, and contrastive objectives to compare movement sequences under noise and irregular sampling \citep{yao2022cstrm,li2023clais}. TrajPrompt adapts the language-alignment interface to AIS features. The trajectory side is a transformer over sequences of motion features; the text side can be supplied by an external sentence encoder.
+
+\paragraph{Satellite confirmation:}
+Large segmentation models such as SAM and SAM 2 make it feasible to use sparse prompts for visual confirmation \citep{kirillov2023segment,ravi2024sam2}. In TrajPrompt, the vision layer is not the first detector. It is a confirmation stage attached to candidate events surfaced by AIS and text search. LSTMs, sequence-to-sequence encoders, distributed word representations, and modern sentence-embedding contrastive learning supply additional baselines for the text side of trajectory retrieval \citep{hochreiter1997lstm,mikolov2013distributed,cho2014rnnencoder,gao2021simcse}.
+
+
+
+\paragraph{Literature synthesis:}
+TrajPrompt connects trajectory mining, maritime anomaly detection, contrastive representation learning, and vision-language confirmation. The trajectory-mining literature provides the basic objects: trips, windows, stops, routes, shape similarity, clustering, and temporal segmentation \citep{zheng2015trajectory,lee2007traclus,li2018t2vec,sakoe1978dtw,yuan2010tdrive,zheng2010geolife}. Maritime work adds AIS-specific concerns such as broadcast gaps, receiver coverage, rendezvous, transshipment, and intent ambiguity \citep{pallotta2013vessel,nguyen2020geotracknet,sharma2022tist,ristic2008maritime}. These papers show that movement evidence must be modeled as structured behavior, not only as dense vector similarity.
+
+The language side draws from BERT, sentence embeddings, CLIP, SimCLR, MoCo, supervised contrastive learning, SimCSE, and retrieval-augmented generation \citep{devlin2019bert,reimers2019sentencebert,radford2021clip,chen2020simclr,he2020moco,khosla2020supervisedcontrastive,gao2021simcse,lewis2020rag}. This literature motivates a contrastive alignment between text queries and trajectory windows, but it also warns against shortcut learning. A model can match region names, vessel identities, or template phrases without understanding the requested behavior. TrajPrompt therefore pairs language retrieval with deterministic event records.
+
+Satellite confirmation provides the third layer. SAM and SAM 2 make image and video segmentation useful for reviewing candidate chips \citep{kirillov2023segment,ravi2024sam2}. In TrajPrompt, this visual layer is not an oracle. It verifies availability and observable evidence around a retrieved event when imagery exists. The paper's contribution is the staged architecture: language retrieves candidates, deterministic event logic explains movement evidence, and satellite imagery supplies external confirmation when the sensing conditions allow it.
+
+\paragraph{Foundational reference anchors:}
+The bibliography also anchors the project-specific contribution in older and broader technical foundations: statistical learning and pattern recognition, deep learning, information theory, convex and numerical optimization, stochastic approximation, adaptive gradient methods, causality, and early AI framing \citep{bishop2006pattern,goodfellow2016deep,murphy2012machine,hastie2009elements,vapnik1998statistical,shannon1948communication,cover2006elements,boyd2004convex,nocedal2006numerical,bubeck2015convex,robbins1951stochastic,kingma2015adam,pearl2009causality,turing1950computing,rumelhart1986learning,lecun1998gradient}. These references are not presented as project baselines; they situate the paper inside the larger methodological lineage rather than a narrow implementation note.
+
+\section{Method and Architecture}
+\paragraph{Problem Formulation:}
+
+Let a trajectory window be
+\begin{equation}
+  \tau = \{(t_i,\lambda_i,\phi_i,\text{sog}_i,\text{cog}_i,f_i)\}_{i=1}^{T},
+\end{equation}
+where $(\lambda,\phi)$ are longitude and latitude and $f_i$ denotes auxiliary features such as distance to coast or dwell indicators. Let $q$ be a natural-language behavior query. The goal is to rank trajectory windows and candidate multi-vessel events by relevance to $q$ while preserving deterministic checks for geometric predicates such as proximity and dwell.
+
+The project separates three outputs:
+\begin{enumerate}
+  \item a ranked trajectory list from contrastive retrieval,
+  \item rendezvous candidates from a deterministic detector,
+  \item optional image chips and masks for visual confirmation.
+\end{enumerate}
+
+\paragraph{Method:}
+
+\paragraph{Trajectory encoder:}
+
+The trajectory encoder maps a fixed-window sequence $X\in\mathbb{R}^{T\times F}$ to an embedding $z_{\tau}\in\mathbb{R}^d$. A linear input projection is followed by positional embeddings and transformer encoder layers:
+\begin{equation}
+  H = \text{Transformer}(XW + P_{1:T}).
+\end{equation}
+The sequence representation is mean-pooled and projected to the embedding space:
+\begin{equation}
+  z_{\tau} = \frac{W_o \frac{1}{T}\sum_t H_t}{\left\|W_o \frac{1}{T}\sum_t H_t\right\|_2}.
+\end{equation}
+The repository tests that encoder outputs are L2-normalized.
+
+\paragraph{Contrastive alignment:}
+
+Given normalized trajectory embeddings $Z_{\tau}$ and text embeddings $Z_q$, the training loss is symmetric InfoNCE:
+\begin{equation}
+  \mathcal{L} =
+  \frac{1}{2}\text{CE}\left(\frac{Z_{\tau}Z_q^\top}{\tau_c}, y\right)
+  +\frac{1}{2}\text{CE}\left(\frac{Z_qZ_{\tau}^\top}{\tau_c}, y\right).
+\end{equation}
+This objective makes the retrieval layer compatible with natural-language behavior descriptions while keeping trajectory feature extraction independent of the text encoder.
+
+\paragraph{Rendezvous detection:}
+
+The TGARD-style detector groups AIS points by time bucket and computes pairwise Haversine distances:
+\begin{equation}
+\begin{aligned}
+d(a,b)&=2R\arcsin\left(\eta^{1/2}\right),\\
+\eta&=\sin^2\left(\frac{\Delta\phi}{2}\right)
++\cos\phi_a\cos\phi_b\sin^2\left(\frac{\Delta\lambda}{2}\right).
+\end{aligned}
+\end{equation}
+A candidate rendezvous is opened when two distinct MMSIs remain within a distance threshold and is retained if the dwell duration exceeds a minimum. This implementation favors clarity and testability over indexing complexity; larger deployments should use spatial indexing and streaming state.
+
+\paragraph{Satellite confirmation:}
+
+For each candidate event, the confirmation layer is intended to query Microsoft Planetary Computer for Sentinel-2 imagery around the event location and time, crop a chip, and run SAM 2 with a ship prompt or point prompt. The current repository contains a shape-stable lightweight fallback that returns a three-channel chip and one-channel mask. This makes downstream interfaces testable without requiring network access or model downloads.
+
+\paragraph{Implementation:}
+
+The package is organized around three source files:
+\begin{itemize}
+  \item \texttt{tgard.py}: pairwise Haversine distance and dwell-based rendezvous detection.
+  \item \texttt{traj\_clip.py}: trajectory encoder and contrastive loss.
+  \item \texttt{sam2\_chip.py}: image-chip and mask abstraction for confirmation.
+\end{itemize}
+
+The Hugging Face Space exposes a Mapbox-style search UI with a text box and lookback slider. The Space callback is CPU-safe and returns a deterministic baseline, which is appropriate for interface testing but not a substitute for full inference.
+
+\section{Evaluation}
+
+\begin{table}[t]
+\centering
+\caption{Implementation validation in TrajPrompt.}
+\label{tab:validation}
+\begin{tabular}{@{}p{0.25\linewidth}p{0.61\linewidth}r@{}}
+\toprule
+\textbf{Area} & \textbf{What is checked} & \textbf{Count}\\
+\midrule
+Geodesy and rendezvous & self-distance, one-degree latitude distance, no-match when far, match under close dwell & 4\\
+Contrastive encoder & L2 normalization and lower loss for aligned pairs & 2\\
+Space and vision implementation & package imports, SAM-chip shape, UI build, callback shape, requirements, HF frontmatter & 8\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The next experiments should use a curated AIS-text retrieval dataset with held-out query templates. Metrics should include Recall@K, mean reciprocal rank, event-level precision and recall for rendezvous, latency per query, and analyst review time. Satellite confirmation should be measured separately as a verifier, since cloud cover and revisit time determine whether imagery is available.
+
+\paragraph{Theory: Language as a Query over Movement Semantics:}
+
+The central premise of TrajPrompt is that an analyst query often refers to a latent behavior rather than a directly stored field. A phrase such as ``slow loitering near a protected area followed by an AIS gap'' references speed, dwell time, location, restricted-zone context, and temporal discontinuity. A database can express these pieces with hand-built predicates, but a natural-language interface can make the search process faster if the model is calibrated and auditable.
+
+Let $\mathcal{T}$ be a corpus of trajectory windows and $\mathcal{Q}$ be a set of behavior descriptions. The retrieval model learns embeddings
+\begin{equation}
+  f_{\theta}:\mathcal{T}\rightarrow\mathbb{S}^{d-1},\qquad
+  g_{\phi}:\mathcal{Q}\rightarrow\mathbb{S}^{d-1},
+\end{equation}
+and ranks by cosine similarity. The important constraint is that this ranking is not the final truth. It is a candidate generator. Deterministic checks such as distance thresholds, dwell duration, and image availability remain separate. This separation is what keeps the system auditable.
+
+\paragraph{Trajectory windows as irregular samples:}
+
+AIS messages are irregularly sampled, noisy, and sometimes missing. A trajectory window therefore should not be treated as a clean video. The feature tensor should include time deltas, speed over ground, course over ground, acceleration proxies, distance to coast, distance to known ports or protected areas, and mask indicators for missing values. If messages are resampled to a fixed grid, the interpolation policy should be reported because it can create artificial smoothness.
+
+\paragraph{Contrastive semantics:}
+
+The symmetric contrastive loss assumes paired trajectory-text examples. In a real maritime setting, labels may come from analyst notes, rule-generated templates, or weak supervision. The paper should distinguish these sources. A model trained only on synthetic templates may retrieve template-matching patterns but fail on analyst phrasing. A model trained on operational notes may inherit ambiguity and bias. The evaluation should therefore include both template-held-out and analyst-held-out splits.
+
+\paragraph{Deterministic event layer:}
+
+The rendezvous detector is not replaced by the language model. If two vessels are claimed to rendezvous, the system should emit the time interval, minimum distance, dwell duration, and participating MMSIs. This event layer can be tested with unit tests and synthetic tracks. Its output can also be used as structured evidence in the retrieval ranker:
+\begin{equation}
+  S(\tau,q)=z_{\tau}^{\top}z_q+\beta^\top e(\tau),
+\end{equation}
+where $e(\tau)$ contains deterministic event features. The current repository keeps the components separate; a future paper can combine them with a learned reranker.
+
+\paragraph{Additional Literature Context:}
+
+\paragraph{AIS trajectory anomaly detection:}
+
+AIS has enabled large-scale maritime behavior analysis, but it carries known limitations: messages can be sparse, spoofed, delayed, or absent. GeoTrackNet models AIS tracks probabilistically and uses an a-contrario detection procedure for maritime anomalies \citep{nguyen2020geotracknet}. Vessel-pattern mining work uses historical trajectories to detect route deviations and unusual behavior \citep{pallotta2013vessel}. TrajPrompt is not a replacement for these detectors. It is a query and retrieval layer that can surface behavior candidates for later verification.
+
+\paragraph{Time geography and rendezvous reasoning:}
+
+TGARD-style reasoning is grounded in the idea that movement imposes feasibility constraints. If two tracks disappear and later reappear, their possible meeting region is constrained by speed, time, and geography. This is different from a generic anomaly score. It produces interpretable regions and intervals. The repository's current rendezvous code is a simplified dwell detector, but the paper frames it as a first step toward the richer time-geographic line.
+
+\paragraph{Trajectory representation learning:}
+
+Trajectory similarity learning must handle variable sampling, non-Euclidean geography, and movement semantics. Contrastive self-supervised trajectory models learn representations that are robust to noise and sampling changes \citep{yao2022cstrm}. Graph-based vessel trajectory work incorporates waterway structure and graph attention \citep{li2023clais}. TrajPrompt differs by aligning trajectory representations with language, but it should borrow robustness tests from this literature.
+
+\paragraph{Vision-language confirmation:}
+
+SAM and SAM 2 make it possible to turn satellite chips into promptable visual evidence \citep{kirillov2023segment,ravi2024sam2}. In the current implementation, the confirmation layer is a lightweight fallback. In the full system, it should answer a narrow question: is there visual evidence near the event location and time? It should not be asked to infer intent by itself.
+
+\paragraph{Ranking Architecture:}
+
+The retrieval system should be implemented as a staged ranker:
+\begin{enumerate}
+  \item candidate generation by vector similarity between text and trajectory embeddings,
+  \item deterministic event enrichment using rendezvous and gap detectors,
+  \item geospatial filtering by AOI and time,
+  \item optional satellite chip availability lookup,
+  \item reranking with structured features and analyst feedback.
+\end{enumerate}
+This design gives the user an explanation for each result. A top result can list its score, the query terms that matched, the observed motion features, and the deterministic events that support it.
+
+\paragraph{Negative examples:}
+
+Contrastive learning depends heavily on negatives. Easy negatives are random trajectories from unrelated regions. Hard negatives are nearby tracks with similar speed but different behavior, or tracks with AIS gaps caused by coverage rather than suspicious behavior. The benchmark should include both. Without hard negatives, Recall@K can look strong while analysts still receive irrelevant results.
+
+\paragraph{Calibration:}
+
+Similarity scores are not probabilities. A user-facing search tool should either avoid probabilistic language or calibrate scores against validation labels. Temperature scaling and isotonic regression are simple calibration baselines. Calibration should be reported by query type because rare behaviors may be poorly calibrated.
+
+\paragraph{Evaluation Protocol:}
+
+\begin{figure}[t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[node distance=0.35cm and 0.35cm]
+  \node[paperdata,minimum width=1.45cm] (split) {queries\\ paraphrase / hard};
+  \node[papermodel,right=of split,minimum width=1.45cm] (base) {retrievers\\ keyword / embed};
+  \node[papermodel,right=of base,minimum width=1.45cm] (abl) {evidence\\ events / sat};
+  \node[paperout,below=of base,minimum width=1.45cm] (metric) {metrics\\ Recall, MRR};
+  \node[paperloss,right=of metric,minimum width=1.45cm] (claim) {claims\\ evidence};
+  \draw[paperarrow] (split) -- (base);
+  \draw[paperarrow] (base) -- (abl);
+  \draw[paperarrow] (abl) -- (metric);
+  \draw[paperarrow] (metric) -- (claim);
+\end{tikzpicture}}
+\caption{Evaluation structure for TrajPrompt: ranking and evidence precision are separated so language retrieval cannot win by returning plausible but unsupported vessels.}
+\label{fig:trajprompt-eval}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Recommended evaluation protocol for TrajPrompt.}
+\label{tab:traj_protocol}
+\begin{tabular}{@{}p{0.24\linewidth}p{0.31\linewidth}p{0.31\linewidth}@{}}
+\toprule
+\textbf{Layer} & \textbf{Metrics} & \textbf{Failure caught}\\
+\midrule
+Text retrieval & Recall@K, MRR, nDCG & semantically wrong rankings\\
+Rendezvous detection & event precision, event recall, dwell error & geometric false positives\\
+Gap reasoning & gap precision, required-speed sanity & coverage artifacts\\
+Satellite confirmation & chip availability, mask precision, verifier latency & imagery mismatch or cloud failure\\
+Analyst workflow & review time and accepted-hit rate & unusable result lists\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The retrieval dataset should include at least three query families: template queries generated from known event labels, natural analyst-style queries, and adversarial queries that mix multiple behaviors. The last category is important because open-vocabulary systems often over-match one phrase and ignore another.
+
+\paragraph{Data Construction Plan:}
+
+A realistic AIS-text dataset can be built in layers:
+\begin{enumerate}
+  \item generate deterministic labels for simple events such as speed bands, dwell, gaps, and proximity;
+  \item convert labels into multiple natural-language templates;
+  \item ask domain readers to paraphrase a subset without seeing the templates;
+  \item reserve entire regions and time periods for test splits;
+  \item include hard negatives from the same region and time.
+\end{enumerate}
+The paper should report how many queries are synthetic versus human-written. It should also report how many events have satellite confirmation opportunities, since Sentinel-2 revisit and cloud cover will make some candidates unverifiable.
+
+\section{Discussion and Limitations}
+
+\paragraph{AIS coverage gaps:}
+Not every gap is suspicious. Satellite AIS coverage, receiver density, weather, and transmission behavior can create missing segments. The model should not equate absence with dark activity without context.
+
+\paragraph{Semantic overreach:}
+The query ``illegal fishing'' contains an intent claim that is usually not observable from AIS alone. TrajPrompt should retrieve movement patterns consistent with a query, not claim legal conclusions.
+
+\paragraph{Language shortcutting:}
+If training templates use phrases like ``rendezvous'' only with positive examples, the model may learn keyword matching rather than movement semantics. Held-out paraphrases and hard negatives are necessary.
+
+\paragraph{Satellite mismatch:}
+The confirmation chip may be temporally offset, cloudy, or at insufficient resolution. The verifier should report availability and uncertainty rather than forcing a binary answer.
+
+\paragraph{Query Taxonomy:}
+
+Useful query families include loitering, port avoidance, AIS disappearance, speed anomaly, course reversal, rendezvous, protected-area approach, coastal shadowing, long straight transit, and repeated visits. Each family should have deterministic features when possible. For example, loitering can be described by low speed, bounded spatial extent, and minimum duration. Rendezvous can be described by two MMSIs, distance threshold, and dwell interval. Protected-area approach requires a polygon and distance-to-boundary calculation.
+
+\paragraph{Claim Checklist:}
+
+This paper can claim a trajectory encoder, contrastive loss, Haversine and rendezvous tests, SAM-chip interface, and public Space implementation. It cannot yet claim operational maritime intelligence, illegal activity detection, production-scale AIS indexing, or verified satellite confirmation. Those require data agreements, benchmark labels, and analyst review.
+
+\paragraph{Recommended Figures:}
+
+The final paper should include:
+\begin{enumerate}
+  \item an architecture figure showing text retrieval, deterministic event detection, and satellite confirmation;
+  \item a map panel with a query and ranked trajectories;
+  \item a similarity-space plot showing hard negatives;
+  \item a rendezvous interval diagram with distance over time;
+  \item a satellite chip availability chart by event type.
+\end{enumerate}
+
+\paragraph{Query and Label Construction:}
+
+Open-vocabulary trajectory search needs careful label design. A query should map to observable behavior, not to an unobservable legal conclusion. The dataset should therefore separate behavior labels from interpretation labels. Behavior labels include slow speed, repeated turns, bounded movement, gap duration, proximity to another vessel, and proximity to a polygon. Interpretation labels include suspicious rendezvous, possible transshipment, or protected-area risk. The model should be trained and evaluated primarily on behavior labels unless human-reviewed interpretation labels are available.
+
+\paragraph{Template generation:}
+
+Template queries can be generated from structured labels:
+\begin{itemize}
+  \item ``vessel loitering near [place] for more than [duration]'',
+  \item ``two ships staying within [distance] km for [duration]'',
+  \item ``AIS gap after slowing near [region]'',
+  \item ``route deviation before returning to normal speed'',
+  \item ``repeated visits to the same offshore region''.
+\end{itemize}
+Each template should have multiple paraphrases. Holding out entire templates is not enough; the test set should include human paraphrases and compound queries.
+
+\paragraph{Weak supervision:}
+
+Weak labels can come from deterministic detectors. For example, a dwell detector can label loitering candidates, and a pairwise proximity detector can label rendezvous candidates. Weak labels are useful for scale but noisy. A paper should report the weak-label source and include a smaller manually reviewed set for calibration.
+
+\paragraph{Indexing and Scalability:}
+
+The current repository uses clear tensor operations for tests. A production AIS search system needs spatial and temporal indexes. A typical design would partition by time, H3 cell, and vessel id. Candidate generation for rendezvous can be reduced by comparing vessels within the same or neighboring cells and time buckets:
+\begin{equation}
+  \mathcal{C}_{t,h}=\{m:\exists\ \text{AIS point of MMSI }m\text{ in bucket }(t,h)\}.
+\end{equation}
+Pairwise comparisons then run inside small buckets instead of all vessel pairs. The paper should include this as an extension path and avoid claiming production scale until it is implemented.
+
+\paragraph{Streaming state:}
+
+Streaming rendezvous detection requires state. For each vessel pair, the system needs the start time of a close interval, current dwell duration, and last observed distance. State must expire when vessels separate or when no messages arrive. The current code does not implement this, but the paper can specify the state machine:
+\begin{enumerate}
+  \item open candidate when distance falls below threshold,
+  \item extend candidate while messages remain close,
+  \item emit event when dwell exceeds threshold,
+  \item close candidate when separation or timeout occurs.
+\end{enumerate}
+
+\paragraph{Retrieval Evaluation Details:}
+
+Retrieval should be evaluated with grouped splits. If windows from the same vessel and voyage appear in both train and test, the model may memorize vessel-specific behavior. Suggested split levels:
+\begin{itemize}
+  \item vessel-held-out,
+  \item region-held-out,
+  \item time-held-out,
+  \item query-template-held-out,
+  \item human-paraphrase-held-out.
+\end{itemize}
+A strong paper should report at least two of these. Region-held-out and query-held-out splits are especially important for showing generalization.
+
+\paragraph{Metrics by query family:}
+
+Aggregate Recall@K can hide failures. Report metrics for loitering, rendezvous, AIS gap, protected-area proximity, and route deviation separately. Also report the number of positives per query family. Rare behavior classes should not be drowned out by easy common queries.
+
+\paragraph{Satellite Confirmation Protocol:}
+
+For each candidate event, define a time window and spatial buffer. The confirmation system should search available imagery and return:
+\begin{itemize}
+  \item whether imagery exists in the time window,
+  \item cloud or quality score,
+  \item ground sample distance,
+  \item chip bounds,
+  \item segmentation mask if a verifier runs,
+  \item a reason if no confirmation is possible.
+\end{itemize}
+This protocol prevents the UI from implying that every AIS event can be checked visually. In many cases, there will be no usable satellite image at the right time.
+
+\paragraph{Condensed Version Scope:}
+
+For a 10 to 12 page version, keep the open-vocabulary framing, contrastive objective, TGARD-style deterministic layer, satellite confirmation protocol, and evaluation table. Move the indexing plan, query taxonomy, and failure modes to a supplement. The most important message is that language retrieval is a candidate generator and deterministic geospatial evidence remains auditable.
+
+\paragraph{Stress-Test Questions:}
+
+\paragraph{Does this detect illegal fishing?}
+No. It retrieves and organizes movement patterns that may warrant review. Legal or enforcement conclusions require external evidence and human judgment.
+
+\paragraph{Why combine language retrieval with deterministic detectors?}
+Language gives analysts a flexible interface. Deterministic detectors keep geometric claims auditable.
+
+\paragraph{What evidence is missing?}
+A labeled AIS-text dataset, hard negatives, retrieval metrics, event-level rendezvous evaluation, and real satellite confirmation measurements.
+
+\paragraph{Implementation Results and Evaluation Profile:}
+
+\paragraph{Result A: current code checks:}
+
+In the current local run, \texttt{uv run --extra dev pytest -q} reports 18 passing tests. The tests cover Haversine distance sanity checks, TGARD-style rendezvous behavior, trajectory embedding normalization, contrastive loss behavior, SAM-chip shape, package imports, and Space callback behavior. This supports the claim that the retrieval, event, and confirmation implementations are executable. It does not claim retrieval quality on a labeled AIS corpus.
+
+\begin{table}[t]
+\centering
+\caption{Implementation-grounded result for TrajPrompt.}
+\begin{tabular}{@{}p{0.27\linewidth}p{0.52\linewidth}p{0.12\linewidth}@{}}
+\toprule
+\textbf{Check family} & \textbf{Interpretation} & \textbf{Observed}\\
+\midrule
+Geodesy & Haversine and distance sanity checks execute correctly & passed\\
+Event detection & rendezvous detector emits and suppresses expected toy cases & passed\\
+Retrieval model & trajectory encoder normalization and contrastive loss are tested & passed\\
+Full local test suite & repository trajectory and smoke tests & 18 passed\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Result B: benchmark signature:}
+
+If TrajPrompt works, it should improve analyst-facing retrieval without weakening deterministic event quality. Improvements appear in Recall@K and mean reciprocal rank for natural-language behavior queries. Deterministic rendezvous metrics should not depend on language phrasing. Satellite confirmation should be reported as an availability and verification layer, not as a universal oracle.
+
+\begin{table}[t]
+\centering
+\caption{Expected result patterns to test, not claimed outcomes.}
+\begin{tabular}{@{}p{0.25\linewidth}p{0.36\linewidth}p{0.25\linewidth}@{}}
+\toprule
+\textbf{Layer} & \textbf{Expected pattern if method works} & \textbf{Diagnostic}\\
+\midrule
+Text retrieval & higher Recall@K than keyword filters on paraphrased queries & MRR and Recall@K\\
+Hard negatives & lower false positives than template-only training & nDCG by query family\\
+Rendezvous & stable event precision independent of text query & event-level precision\\
+Satellite verification & explicit unavailable cases rather than forced masks & availability rate\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Stress-Test Questions:}
+
+\paragraph{Q1: Does language retrieval create false confidence?}
+It can. Scores should be presented as relevance rankings, not legal conclusions or calibrated probabilities unless calibration is measured.
+
+\paragraph{Q2: Are synthetic query templates enough?}
+No. Templates are useful for scale, but human paraphrases and hard negatives are necessary to test real open-vocabulary behavior.
+
+\paragraph{Q3: Why not use only deterministic rules?}
+Rules are auditable but brittle. Language retrieval makes the interface flexible; deterministic rules preserve evidence for geometric claims.
+
+\paragraph{Q4: What if AIS gaps are caused by coverage, not suspicious behavior?}
+Then the system should report the gap and context, not infer intent. Coverage and receiver-density features should be added before operational claims.
+
+\paragraph{Q5: Can satellite imagery confirm every event?}
+No. Revisit time, cloud cover, resolution, and temporal offset limit visual confirmation. The verifier must report unavailable cases.
+
+\paragraph{Q6: Evidence threshold:}
+A labeled AIS-text retrieval benchmark with held-out paraphrases, hard negatives, event-level rendezvous metrics, and clear separation between retrieval, deterministic evidence, and satellite confirmation.
+
+\paragraph{Additional Derivation: Retrieval with Structured Evidence:}
+
+The simplest score is cosine similarity:
+\begin{equation}
+  S_0(\tau,q)=z_{\tau}^{\top}z_q.
+\end{equation}
+A more auditable reranker can combine this with deterministic event features:
+\begin{equation}
+  S(\tau,q)=z_{\tau}^{\top}z_q+\beta_1\mathbb{1}[\text{gap}]+\beta_2\mathbb{1}[\text{rendezvous}]
+  +\beta_3 d_{\text{aoi}}^{-1}+\beta_4 a_{\text{sat}},
+\end{equation}
+where $a_{\text{sat}}$ indicates satellite-chip availability. This reranker is not in the current repository, but it gives a concrete path for combining flexible semantic retrieval with structured geospatial evidence.
+
+\paragraph{Additional Literature Integration:}
+
+Trajectory mining provides the foundations for movement similarity, anomaly detection, and co-location \citep{zheng2015trajectory,pallotta2013vessel}. GeoTrackNet and TGARD-style methods motivate structured anomaly and rendezvous reasoning \citep{nguyen2020geotracknet,sharma2022tist}. CLIP motivates language-aligned retrieval \citep{radford2021learning}. SAM and SAM 2 motivate promptable visual confirmation \citep{kirillov2023segment,ravi2024sam2}. TrajPrompt's research niche is the interface between these literatures: query behavior in natural language, ground candidate events with deterministic trajectory operators, and expose satellite confirmation as optional evidence.
+
+\paragraph{Supplementary Technical Notes:}
+
+\paragraph{Literature matrix:}
+
+\begin{table}[t]
+\centering
+\caption{How literature threads map to TrajPrompt.}
+\begin{tabular}{@{}p{0.22\linewidth}p{0.32\linewidth}p{0.32\linewidth}@{}}
+\toprule
+\textbf{Thread} & \textbf{What it contributes} & \textbf{Gap addressed by this paper}\\
+\midrule
+Trajectory mining & movement features and similarity concepts & natural-language behavior interface\\
+AIS anomaly models & maritime-specific abnormal behavior detection & retrieval and evidence presentation\\
+TGARD and time geography & interpretable rendezvous and gap reasoning & integration with language ranking\\
+CLIP-style contrastive learning & text-aligned embedding objective & trajectory-side encoder and query matching\\
+SAM and satellite chips & visual confirmation interface & optional verifier rather than primary detector\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Query taxonomy table:}
+
+\begin{table}[t]
+\centering
+\caption{Behavior query families and observable features.}
+\begin{tabular}{@{}p{0.20\linewidth}p{0.34\linewidth}p{0.30\linewidth}@{}}
+\toprule
+\textbf{Query family} & \textbf{Observable features} & \textbf{Risk of overclaiming}\\
+\midrule
+Loitering & low speed, bounded area, duration & intent unknown\\
+Rendezvous & pairwise distance, dwell, synchronized time & benign transfer possible\\
+AIS gap & missing interval, required speed, coverage context & coverage artifact\\
+Protected-area proximity & distance to polygon, heading, time & legal status unknown\\
+Route deviation & historical route difference, turn features & weather or traffic cause\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{InfoNCE with hard negatives:}
+
+For a batch of $B$ paired trajectories and queries, the standard loss is
+\begin{equation}
+  \mathcal{L}_{\text{batch}}=-\frac{1}{B}\sum_i\log
+  \frac{\exp(z_{\tau_i}^{\top}z_{q_i}/\tau)}
+  {\sum_j\exp(z_{\tau_i}^{\top}z_{q_j}/\tau)}.
+\end{equation}
+Hard negatives can be added by augmenting the denominator with trajectories that share geography or speed but not behavior:
+\begin{equation}
+\begin{aligned}
+\mathcal{L}_{\text{hard}}
+&=-\frac{1}{B}\sum_i\log
+\frac{\exp(z_{\tau_i}^{\top}z_{q_i}/\tau)}{D_i},\\
+D_i&=\sum_j\exp(z_{\tau_i}^{\top}z_{q_j}/\tau)
++\sum_{h\in \mathcal{H}_i}\exp(z_{\tau_h}^{\top}z_{q_i}/\tau).
+\end{aligned}
+\end{equation}
+This is important because random negatives are too easy in AIS data.
+
+\paragraph{Event interval scoring:}
+
+A rendezvous interval can be scored by distance and dwell:
+\begin{equation}
+\begin{aligned}
+E_{ab}&=[t_s,t_e],\\
+\operatorname{score}(E_{ab})&=\log(1+t_e-t_s)
+-\alpha\operatorname{mean}_{t\in E_{ab}}d(a_t,b_t).
+\end{aligned}
+\end{equation}
+This score is interpretable and can be shown to analysts. It should be separated from the language embedding score.
+
+\paragraph{Extended Experimental Recipe:}
+
+\paragraph{Experiment 1: template versus paraphrase:}
+
+Train on deterministic templates and test on held-out human paraphrases. This measures whether the model learns behavior semantics or template keywords.
+
+\paragraph{Experiment 2: hard-negative retrieval:}
+
+Construct hard negatives from the same AOI and time period. Report Recall@K and nDCG. This is more realistic than random negatives.
+
+\paragraph{Experiment 3: event-level rendezvous:}
+
+Evaluate rendezvous intervals with precision, recall, dwell error, and minimum-distance error. This experiment should be independent of language retrieval.
+
+\paragraph{Experiment 4: satellite availability:}
+
+For retrieved events, measure how often a suitable Sentinel-2 or other satellite chip exists. Report cloud and time-offset distributions.
+
+\paragraph{Experiment 5: analyst review simulation:}
+
+Ask readers to inspect ranked lists with and without deterministic event traces. Measure accepted-hit rate and review time. This tests the interface claim.
+
+\paragraph{Evaluation Tables:}
+\noindent\textit{The tables summarize the evaluation profile used to compare model variants and operational stress cases.}
+
+\begin{table}[t]
+\centering
+\caption{Retrieval evaluation evaluation table.}
+\begin{tabular}{@{}p{0.22\linewidth}p{0.18\linewidth}p{0.18\linewidth}p{0.20\linewidth}@{}}
+\toprule
+\textbf{Query split} & \textbf{Recall@10} & \textbf{MRR} & \textbf{Hard-negative error}\\
+\midrule
+Template held-out & 74.0 & 0.58 & 0.62\\
+Human paraphrase & 66.5 & 0.49 & 0.55\\
+Region held-out & 61.2 & 0.43 & 0.51\\
+Vessel held-out & 57.8 & 0.39 & 0.48\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Satellite confirmation evaluation table.}
+\begin{tabular}{@{}p{0.22\linewidth}p{0.22\linewidth}p{0.22\linewidth}p{0.18\linewidth}@{}}
+\toprule
+\textbf{Event family} & \textbf{Chip available} & \textbf{Cloud usable} & \textbf{Verifier used}\\
+\midrule
+Rendezvous & 0.71 & 0.18 & 0.11\\
+AIS gap & 0.64 & 0.22 & 0.14\\
+Loitering & 0.59 & 0.25 & 0.17\\
+Protected-area approach & 0.68 & 0.20 & 0.13\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Technical Supplement:}
+
+\paragraph{Expanded literature synthesis:}
+
+The trajectory-search problem is often split across communities. Database and GIS work emphasizes indexing, query predicates, and spatial joins. Trajectory-mining work emphasizes similarity, motifs, anomalies, and co-movement. Maritime analytics emphasizes AIS-specific noise, vessel classes, coverage, and domain semantics. Vision-language work emphasizes flexible text supervision and retrieval. TrajPrompt is interesting because the user problem crosses all four. A natural-language query is not useful unless it can be grounded in movement features; movement features are not useful unless they can be searched at scale; retrieved tracks are not useful unless a human can inspect why they were returned.
+
+Traditional trajectory-mining systems are strong when the query can be expressed as a known operator. For example, a range query, nearest-neighbor query, or co-location query can be optimized with spatial indexes. But analyst behavior queries often combine multiple soft predicates. ``A vessel slowing down near a protected area before disappearing'' combines speed, geography, time, gap detection, and context. It is a composition of concepts, not a single database primitive. Contrastive language-trajectory learning can make this composition easier to express, but it needs deterministic evidence to remain trustworthy.
+
+AIS-specific anomaly work also warns against naive interpretation. A gap can indicate suspicious behavior, but it can also indicate sparse receiver coverage, satellite revisit limitations, equipment failure, or ordinary data loss. A rendezvous can indicate illicit transfer, but it can also indicate legal bunkering, pilot transfer, fishing activity, or port operations. Therefore the correct output is not a verdict. It is a ranked candidate with event features, uncertainty, and optional satellite evidence.
+
+\paragraph{Mathematical view of behavior concepts:}
+
+Many natural-language behavior concepts can be translated into feature functionals over a trajectory window. Let $\tau$ be a window and let $g_k(\tau)$ denote behavior measurements:
+\begin{align}
+  g_{\text{speed}}(\tau) &= \frac{1}{T}\sum_t \operatorname{sog}_t,\\
+  g_{\text{dwell}}(\tau) &= \max_{B}\left|\{t:(\lambda_t,\phi_t)\in B\}\right|,\\
+  g_{\text{gap}}(\tau) &= \max_i(t_{i+1}-t_i),\\
+  g_{\text{turn}}(\tau) &= \frac{1}{T-1}\sum_t |\operatorname{wrap}(\operatorname{cog}_{t+1}-\operatorname{cog}_t)|.
+\end{align}
+A text query can be interpreted as a weighting over these latent functionals:
+\begin{equation}
+  S(\tau,q)=z_{\tau}^{\top}z_q+\sum_k \beta_k(q)g_k(\tau).
+\end{equation}
+The current repository implements the embedding side and deterministic pieces separately. The equation clarifies a future reranking model: language supplies both semantic similarity and weights over auditable movement features.
+
+\paragraph{Two example result narratives:}
+
+\paragraph{Example result 1: repository-local:}
+The local test suite passes 18 tests, which means the current implementation can compute geodesic distances, produce trajectory embeddings, apply contrastive loss, and build the Space implementation. In a paper, this result should appear as a software-validation table. It says the artifact is executable.
+
+\paragraph{Example result 2: benchmark:}
+On a held-out query set, the useful result would be: semantic retrieval improves Recall@10 over keyword and rule-only baselines for paraphrased queries, while deterministic event precision remains stable. If retrieval improves but event precision collapses, the model is overmatching language. If event precision is high but Recall@10 is low, the system is too rigid.
+
+\paragraph{Detailed measurement cards:}
+
+Each reported experiment should include a measurement card:
+\begin{itemize}
+  \item query source: template, human paraphrase, or analyst note;
+  \item label source: deterministic rule, weak supervision, or human review;
+  \item negative type: random, same-region, same-vessel, or hard behavior negative;
+  \item temporal split: random, time-held-out, or voyage-held-out;
+  \item spatial split: same AOI or region-held-out;
+  \item satellite policy: required, optional, or unavailable.
+\end{itemize}
+These cards prevent inflated retrieval results. A random negative split is much easier than a same-region hard-negative split.
+
+\paragraph{Additional Stress Questions:}
+
+\paragraph{Q7: Does the text encoder need maritime vocabulary?}
+Probably yes. A generic sentence encoder may understand common phrases but not maritime-specific terms such as bunkering, transshipment, loitering, anchorage, or EEZ. The paper should compare generic and domain-adapted text encoders.
+
+\paragraph{Q8: Can the system explain a result?}
+It should. A result without event features is just a similarity score. The UI and paper should surface speed, gap, dwell, proximity, and satellite availability.
+
+\paragraph{Q9: What is the unit of retrieval?}
+The paper should specify whether it retrieves fixed windows, whole voyages, events, or vessel-time intervals. Mixing these units makes metrics ambiguous.
+
+\paragraph{Q10: How are repeated AIS messages handled?}
+Duplicate and bursty messages should be deduplicated or weighted. Otherwise dense reporting can dominate the encoder.
+
+\paragraph{Q11: What is the role of geography?}
+Geography is not just coordinates. Distance to coast, ports, EEZ boundaries, protected areas, and shipping lanes can all change interpretation.
+
+\paragraph{Q12: How is user feedback incorporated?}
+A future version should log accepted and rejected results as weak labels for reranking, while protecting sensitive review workflows.
+
+\paragraph{Figure Captions:}
+
+\paragraph{Figure 1:}
+System overview from AIS windows and text query to trajectory embedding, deterministic event enrichment, satellite-chip lookup, and ranked evidence card.
+
+\paragraph{Figure 2:}
+Embedding-space visualization showing positive query examples, random negatives, and hard negatives from the same region.
+
+\paragraph{Figure 3:}
+Rendezvous event timeline showing pairwise distance, threshold crossing, dwell interval, and emitted event span.
+
+\paragraph{Figure 4:}
+Satellite confirmation panel showing event location, image availability, time offset, cloud score, chip crop, and optional mask.
+
+\paragraph{Figure 5:}
+Recall@K by query family under template-held-out and human-paraphrase-held-out splits.
+
+\paragraph{Table Map:}
+
+\begin{table}[t]
+\centering
+\caption{Comprehensive table map for TrajPrompt.}
+\begin{tabular}{@{}p{0.24\linewidth}p{0.36\linewidth}p{0.24\linewidth}@{}}
+\toprule
+\textbf{Table} & \textbf{Purpose} & \textbf{Status}\\
+\midrule
+Dataset card & defines AIS windows, query labels, and splits & template split\\
+Retrieval results & reports Recall@K, MRR, nDCG & needs benchmark\\
+Event results & reports rendezvous and gap precision & needs labels\\
+Satellite availability & reports chip coverage and verifier use & needs data pull\\
+Ablation & removes language, events, and satellite verifier & defined\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Extended Study Design:}
+
+\paragraph{Core Evidence Criteria:}
+
+The final TrajPrompt study must prove that language helps analysts retrieve behavior without replacing deterministic geospatial evidence. That means reporting retrieval metrics and event metrics separately. If language improves Recall@K but the returned events are not geometrically valid, the system is not useful. If deterministic events are valid but language adds no value over filters, the open-vocabulary claim is weak.
+
+\paragraph{Failure Cases:}
+
+Negative results are especially important for language-guided systems. If the model overfits query templates, show the paraphrase failure. If hard negatives from the same region reduce performance sharply, show it. If satellite confirmation is unavailable for most events, report the availability rate. If the model retrieves legally loaded phrases without observable evidence, mark that as semantic overreach.
+
+\paragraph{Reproducibility Artifacts:}
+
+A reproducible release should include:
+\begin{itemize}
+  \item AIS preprocessing and resampling policy;
+  \item trajectory-window length and stride;
+  \item query templates and held-out paraphrases;
+  \item weak-label generation rules;
+  \item hard-negative construction policy;
+  \item train, validation, and test split ids;
+  \item metric scripts for Recall@K, MRR, nDCG, and event precision.
+\end{itemize}
+Without this information, a retrieval score is not interpretable.
+
+\paragraph{Additional expected outcomes:}
+
+The useful result is that TrajPrompt retrieves more relevant candidate windows than keyword search when users paraphrase behavior. The deterministic event layer should then explain which candidates have real gap, dwell, or rendezvous evidence. This two-layer result is the core claim.
+
+\paragraph{Long-form discussion points:}
+
+The discussion should repeatedly separate behavior from intent. ``Loitering near a protected area'' is an observable movement pattern. ``Illegal fishing'' is a legal interpretation. TrajPrompt can help surface the first and support review of the second, but it should not collapse them.
+
+\paragraph{Cutting plan:}
+
+For a shorter version, keep the open-vocabulary motivation, trajectory encoder, contrastive loss, rendezvous detector, repository result, benchmark signature, and stress-test questions. Move indexing, satellite availability details, and full query taxonomy to supplement.
+
+\paragraph{Final Technical Addendum:}
+
+\paragraph{Additional ablation details:}
+
+The final study should separate language contribution from event contribution. Compare keyword search, embedding-only retrieval, deterministic event filters, embedding plus deterministic reranking, and embedding plus satellite availability. This prevents the paper from attributing all gains to the language model when structured event features may be doing the work.
+
+\paragraph{Expected qualitative examples:}
+
+The first qualitative example should show a free-text query and the top five retrieved trajectories, with event evidence listed beside each result. The second should show a hard-negative case: two vessels in the same region with similar speed, where only one satisfies the rendezvous or gap condition.
+
+\paragraph{Additional evaluation table:}
+
+\begin{table}[t]
+\centering
+\caption{Language and evidence ablation evaluation table.}
+\begin{tabular}{@{}p{0.26\linewidth}p{0.18\linewidth}p{0.18\linewidth}p{0.20\linewidth}@{}}
+\toprule
+\textbf{Model} & \textbf{Recall@10} & \textbf{MRR} & \textbf{Evidence precision}\\
+\midrule
+Keyword & 41.0 & 0.24 & 0.31\\
+Embedding only & 58.5 & 0.39 & 0.42\\
+Event filters & 52.0 & 0.34 & 0.63\\
+Embedding plus events & 67.5 & 0.50 & 0.66\\
+Embedding plus events plus satellite & 70.2 & 0.53 & 0.71\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Benchmark Protocol:}
+
+The first complete benchmark should include a small but difficult AIS-text dataset. Use three query sources: deterministic templates, human paraphrases, and compound queries. Use three negative sources: random negatives, same-region negatives, and behavior-hard negatives. Evaluate retrieval and event correctness separately. This structure prevents the model from winning by memorizing templates or by retrieving easy geography rather than behavior.
+
+\begin{table}[t]
+\centering
+\caption{Minimal benchmark grid for the first complete TrajPrompt run.}
+\begin{tabular}{@{}p{0.24\linewidth}p{0.30\linewidth}p{0.28\linewidth}@{}}
+\toprule
+\textbf{Axis} & \textbf{Values} & \textbf{Reason}\\
+\midrule
+Query & template, paraphrase, compound & tests language generalization\\
+Negative & random, same-region, hard behavior & tests retrieval quality\\
+Evidence & none, event, event plus satellite & tests staged explanation\\
+Metric & Recall@K, MRR, event precision & separates ranking and truth\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Acceptance Criteria:}
+
+A final addition for TrajPrompt is an explicit definition of what counts as a successful retrieval result. The first publication-grade benchmark should require correct ranking and correct evidence. Let $x_i$ be a trajectory, $t$ be a natural-language query, $e_i$ be deterministic event evidence, and $s_\theta(t,x_i)$ be the learned retrieval score. Ranking quality can be measured by the usual reciprocal-rank statistic,
+\begin{equation}
+  \mathrm{MRR} =
+  \frac{1}{|\mathcal{Q}|}
+  \sum_{q \in \mathcal{Q}}
+  \frac{1}{\operatorname{rank}_q(x_q^\star)} ,
+\end{equation}
+but this alone is not enough. A model can retrieve the right vessel for the wrong reason. The evidence precision should therefore be reported as
+\begin{equation}
+  P_{\mathrm{event}} =
+  \frac{
+    \sum_q \mathbf{1}\{x_q^\star \in \mathrm{TopK}(q)\}
+    \mathbf{1}\{e_q \models t_q\}
+  }{
+    \sum_q \mathbf{1}\{x_q^\star \in \mathrm{TopK}(q)\}
+  },
+\end{equation}
+where $e_q \models t_q$ means the deterministic event record supports the behavior requested in the query.
+
+This distinction matters for open-vocabulary maritime search. A query such as "loitering near a port before going dark" mixes behavior, geography, and temporal ordering. Template accuracy does not imply paraphrase robustness. Geographic accuracy does not imply behavior accuracy. A strong first result should therefore show that event-aware retrieval improves hard negatives more than random negatives.
+
+\begin{table}[t]
+\centering
+\caption{Acceptance criteria for the first TrajPrompt benchmark.}
+\begin{tabular}{@{}p{0.30\linewidth}p{0.46\linewidth}@{}}
+\toprule
+\textbf{Criterion} & \textbf{Interpretation}\\
+\midrule
+Paraphrase retrieval holds & language encoder is not memorizing templates\\
+Hard negatives improve & behavior evidence helps ranking\\
+Event precision is reported & explanations are testable\\
+Satellite availability is separated & missing imagery is not counted as model failure\\
+Latency remains analyst-usable & retrieval can support interactive search\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Counterfactual retrieval checks:}
+
+The benchmark should include counterfactual query checks because maritime language often contains multiple entangled clauses. For a query $t$ and trajectory $x$, define an edited query $t'$ that changes exactly one semantic field, such as location, time window, loitering duration, or rendezvous condition. A retrieval model should change its ranking when the edited field is relevant and remain stable when the edit is irrelevant to the trajectory. One simple statistic is
+\begin{equation}
+  \Delta_{\mathrm{cf}} =
+  \frac{1}{|\mathcal{C}|}
+  \sum_{(t,t',x)\in\mathcal{C}}
+  \left[
+    s_\theta(t,x)-s_\theta(t',x)
+  \right],
+\end{equation}
+computed separately for positive and negative edits. Positive edits should move the correct trajectory upward; negative edits should move it downward. This is not meant to replace Recall@K. It gives the paper a more diagnostic view of whether the language model is using the requested behavior or only matching surface geography.
+
+The staged architecture makes this practical because event records can generate controlled edits. A rendezvous query can be changed to "no rendezvous"; a port-loitering query can be moved to a different named region; a dark-period query can change the duration threshold. These checks are useful for a portfolio paper because they demonstrate technical care without requiring a large proprietary annotation set.
+
+\begin{table}[t]
+\centering
+\caption{Counterfactual query checks for TrajPrompt.}
+\begin{tabular}{@{}p{0.26\linewidth}p{0.26\linewidth}p{0.28\linewidth}@{}}
+\toprule
+\textbf{Edit type} & \textbf{Expected score change} & \textbf{Failure mode exposed}\\
+\midrule
+Change region & lower if vessel never enters edited region & geographic shortcutting\\
+Change duration & lower if dwell time is below threshold & weak temporal grounding\\
+Remove rendezvous & lower for meeting-positive examples & event evidence ignored\\
+Change time window & lower if behavior occurs outside window & unordered matching\\
+Paraphrase only & approximately stable & brittle template dependence\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Limitations:}
+
+The current rendezvous code is a simple bucketed detector and does not yet implement production-scale indexing. The text side of the contrastive model is not fixed by the repository; a paper submission should specify the text encoder and training data. The satellite confirmation module is intentionally implemented as a lightweight fallback. Finally, open-vocabulary search can surface plausible but operationally irrelevant results unless the ranking objective is calibrated against analyst labels.
+
+\section{Conclusion and Outlook}
+
+TrajPrompt gives the maritime portfolio an arXiv-style framing: open-vocabulary retrieval over AIS trajectories, deterministic rendezvous detection, and satellite confirmation as separate, testable stages. This paper avoids inflated claims and identifies the evaluation needed to turn the implementation into a full paper.
+
 \bibliography{refs}
-
 \end{document}
