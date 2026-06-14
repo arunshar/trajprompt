@@ -43,3 +43,31 @@ def test_rendezvous_detects_close_dwell():
     cand = out[0]
     assert {cand.mmsi_a, cand.mmsi_b} == {1234, 5678}
     assert cand.dwell_seconds >= 600.0
+    # Stationary pair: centroid barely moves, so implied speed is well under 3 kn.
+    assert cand.max_speed_knots < 3.0
+
+
+def test_speed_gate_filters_fast_convoy():
+    """Two ships moving together at speed stay within 500 m but transit fast.
+
+    They co-locate for 30 minutes (a long dwell) yet steam ~0.01 deg of
+    longitude per minute (roughly 20 kn at the equator). The default 3-kn
+    speed gate should reject them; disabling the gate should keep them.
+    """
+    rows = []
+    for k, t in enumerate(range(0, 1800, 60)):  # 30 min, 1-minute samples
+        lon = 0.01 * k  # convoy advances east each minute
+        rows.append([1234, t, lon, 0.0])
+        rows.append([5678, t, lon + 0.0001, 0.0])  # ~11 m apart, moving together
+    pts = torch.tensor(rows, dtype=torch.float64)
+
+    gated = find_rendezvous(
+        pts, distance_threshold_m=500.0, min_dwell_seconds=600.0, max_speed_knots=3.0
+    )
+    assert gated == []  # fast convoy filtered out
+
+    ungated = find_rendezvous(
+        pts, distance_threshold_m=500.0, min_dwell_seconds=600.0, max_speed_knots=None
+    )
+    assert len(ungated) == 1  # gate disabled -> candidate retained
+    assert ungated[0].max_speed_knots > 3.0

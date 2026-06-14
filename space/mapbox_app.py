@@ -5,8 +5,13 @@ import gradio as gr
 
 
 def search(prompt: str, lookback_days: int):
-    """Run TGARD + traj-CLIP scoring + SAM 2 confirmation."""
-    return None, "[Stub: this would render a folium / Mapbox map with traces]"
+    """Placeholder callback. Does NOT run the pipeline yet.
+
+    The intended behavior is to run TGARD + traj-CLIP scoring + SAM 2
+    confirmation and render a Mapbox/folium map with trajectory traces.
+    For now it returns no map and a placeholder message so the Space loads.
+    """
+    return None, "[Placeholder: the pipeline is not wired in yet; no map is rendered.]"
 
 
 def build_ui():

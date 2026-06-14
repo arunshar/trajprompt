@@ -20,7 +20,11 @@ class ChipResult:
 
 
 class Sam2ChipPipeline:
-    """Stub pipeline.
+    """STUB pipeline -- returns zeros, performs NO real inference.
+
+    ``chip_for`` always returns an all-zeros chip and an all-zeros mask with
+    confidence 0.0, and ``confirm`` therefore never finds a "confident" chip.
+    Nothing here queries imagery or runs SAM 2 yet.
 
     In production this would:
     - Use ``planetary_computer`` + STAC search to find Sentinel-2 imagery

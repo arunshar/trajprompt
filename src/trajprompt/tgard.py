@@ -27,6 +27,11 @@ class RendezvousCandidate:
     centroid_lonlat: tuple    # (lon, lat) of the rendezvous mean
     dwell_seconds: float
     closest_distance_m: float
+    max_speed_knots: float    # peak implied transit speed during the rendezvous
+
+
+# 1 knot = 1 nautical mile/hour = 1852 m / 3600 s.
+_KNOT_TO_M_PER_S = 1852.0 / 3600.0
 
 
 def haversine_pairwise(lonlat_a: Tensor, lonlat_b: Tensor) -> Tensor:
@@ -49,8 +54,11 @@ def find_rendezvous(
     """Find anomalous rendezvous in an AIS sample.
 
     A rendezvous is a contiguous time interval during which two distinct MMSIs
-    remain within ``distance_threshold_m`` of each other. Optional speed gate
-    filters out non-suspicious co-location (e.g. ships moving in convoy at speed).
+    remain within ``distance_threshold_m`` of each other. The optional speed
+    gate ``max_speed_knots`` filters out non-suspicious co-location (e.g. ships
+    moving in convoy at speed): a candidate is kept only if the peak implied
+    transit speed of the rendezvous centroid stays at or below the threshold.
+    Pass ``None`` or ``0`` to disable the speed gate (backward-compatible).
     """
     if points.dim() != 2 or points.shape[-1] < 4:
         raise ValueError(f"points must be (N, >=4), got {tuple(points.shape)}")
@@ -90,17 +98,49 @@ def find_rendezvous(
                         "lat_sum": 0.0,
                         "n": 0,
                         "min_d": float("inf"),
+                        "prev_lon": None,
+                        "prev_lat": None,
+                        "prev_ts": None,
+                        "max_speed_mps": 0.0,
                     },
                 )
-                rec["lon_sum"] += float(lonlat[i, 0].item() + lonlat[j, 0].item()) / 2
-                rec["lat_sum"] += float(lonlat[i, 1].item() + lonlat[j, 1].item()) / 2
+                cen_lon = float(lonlat[i, 0].item() + lonlat[j, 0].item()) / 2
+                cen_lat = float(lonlat[i, 1].item() + lonlat[j, 1].item()) / 2
+                ts = chunk[i, 1].item()
+                rec["lon_sum"] += cen_lon
+                rec["lat_sum"] += cen_lat
                 rec["n"] += 1
-                rec["end"] = chunk[i, 1].item()
+                rec["end"] = ts
                 rec["min_d"] = min(rec["min_d"], float(d[i, j].item()))
+
+                # Implied transit speed of the rendezvous centroid between
+                # consecutive contributing time buckets, used by the speed gate.
+                if rec["prev_ts"] is not None:
+                    dt = float(ts - rec["prev_ts"])
+                    if dt > 0:
+                        prev = torch.tensor([[rec["prev_lon"], rec["prev_lat"]]], dtype=lonlat.dtype)
+                        cur = torch.tensor([[cen_lon, cen_lat]], dtype=lonlat.dtype)
+                        step_m = float(haversine_pairwise(prev, cur)[0, 0].item())
+                        rec["max_speed_mps"] = max(rec["max_speed_mps"], step_m / dt)
+                rec["prev_lon"] = cen_lon
+                rec["prev_lat"] = cen_lat
+                rec["prev_ts"] = ts
+
+    # Convert the knot threshold to m/s once. None or 0 disables the gate.
+    speed_gate_mps = (
+        max_speed_knots * _KNOT_TO_M_PER_S
+        if max_speed_knots
+        else None
+    )
 
     for key, rec in open_pairs.items():
         dwell = float(rec["end"] - rec["start"])
         if dwell < min_dwell_seconds:
+            continue
+        cand_max_speed_mps = rec["max_speed_mps"]
+        # Speed gate: drop pairs whose centroid transited faster than the
+        # threshold (they were moving together, not loitering / rendezvousing).
+        if speed_gate_mps is not None and cand_max_speed_mps > speed_gate_mps:
             continue
         candidates.append(
             RendezvousCandidate(
@@ -111,6 +151,7 @@ def find_rendezvous(
                 centroid_lonlat=(rec["lon_sum"] / max(rec["n"], 1), rec["lat_sum"] / max(rec["n"], 1)),
                 dwell_seconds=dwell,
                 closest_distance_m=rec["min_d"],
+                max_speed_knots=cand_max_speed_mps / _KNOT_TO_M_PER_S,
             )
         )
 
