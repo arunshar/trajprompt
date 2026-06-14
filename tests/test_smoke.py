@@ -80,6 +80,7 @@ def test_sam2_chip_pipeline_returns_correct_shape():
 
 
 def test_space_app_importable():
+    pytest.importorskip("gradio")
     module = _load_app_module()
     assert hasattr(module, "build_ui")
     assert hasattr(module, "search")
@@ -93,6 +94,7 @@ def test_space_ui_builds():
 
 
 def test_space_callback_returns_tuple():
+    pytest.importorskip("gradio")
     module = _load_app_module()
     out = module.search("ships near pipelines", 30)
     assert isinstance(out, tuple) and len(out) == 2
