@@ -34,6 +34,29 @@ class TrajCLIPEncoder(nn.Module):
         return F.normalize(self.head(h.mean(dim=1)), dim=-1)
 
 
+class TextEncoder(nn.Module):
+    """Text-side encoder: a short token-id phrase -> (B, embed_dim) L2-normalized.
+
+    A small learnable stand-in for a frozen sentence-transformer so the InfoNCE
+    alignment runs self-contained on CPU with no external model download. The
+    normalized-output contract matches the trajectory encoder, so a real
+    sentence model can be dropped in for AIS-text pairs without other changes.
+    """
+
+    def __init__(self, vocab_size: int, embed_dim: int = 128, hidden: int = 128, pad_id: int = 0):
+        super().__init__()
+        self.pad_id = pad_id
+        self.emb = nn.Embedding(vocab_size, hidden, padding_idx=pad_id)
+        self.net = nn.Sequential(
+            nn.Linear(hidden, hidden), nn.GELU(), nn.Linear(hidden, embed_dim)
+        )
+
+    def forward(self, text_ids: Tensor) -> Tensor:
+        mask = (text_ids != self.pad_id).float().unsqueeze(-1)        # (B, L, 1)
+        pooled = (self.emb(text_ids) * mask).sum(dim=1) / mask.sum(dim=1).clamp_min(1.0)
+        return F.normalize(self.net(pooled), dim=-1)
+
+
 def trajclip_loss(
     traj_emb: Tensor,
     text_emb: Tensor,
