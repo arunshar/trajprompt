@@ -28,3 +28,7 @@ tests/test_traj_clip.py::test_loss_drops_when_pairs_are_aligned PASSED   [100%]
 
 ============================== 18 passed in 2.11s ==============================
 ```
+
+## Reproduced demo (headline number)
+
+`haversine_pairwise` returns 111,195 m for 1 degree of latitude (matches the geodesic reference), the distance backbone behind TGARD rendezvous detection.
